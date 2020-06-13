@@ -2,7 +2,6 @@
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
-const morgan = require('morgan')
 const helmet = require('helmet')
 const glob = require('glob')
 const cors = require('cors')
@@ -15,7 +14,7 @@ const authenticate = require('./utils/authenticate')
 /* Protecting headers */
 app.use(helmet());
 
-/* Body parser config */
+/* Body parser of limit 50mb  */
 app.use(
   bodyParser.json({
     limit: '50mb'
@@ -29,10 +28,10 @@ app.use(
   })
 );
 
-app.use(appLogger.requestDetails(appLogger));
+app.use(appLogger.requestDetails(appLogger)) // need to write check functionality
 
-app.use('/public', express.static('public'));
-require('./config/db');
+app.use('/public', express.static('public')) //Serving Static Files
+
 
 /* CORS setup */
 //const domain = 'https://domain.com';
@@ -46,9 +45,6 @@ app.use(cors());
 /* Apply error handlers to app */
 require('./utils/errorHandler')(app);
 
-/* Log requests to console */
-app.use(morgan('dev'));
-
 /* Router setup */
 const openRouter = express.Router(); // Open routes
 const apiRouter = express.Router(); // Protected routes
@@ -60,13 +56,14 @@ glob('./components/*', null, (err, items) => {
     require(component).routes && require(component).routes(
       openRouter,
       apiRouter
-    );
-  });
-  
-});  
+    )
+  })
 
-apiRouter.use(authenticate.verifyToken);
-app.use('/v1', openRouter);
-app.use('/api/v1', apiRouter);
+})
+
+apiRouter.use(authenticate.verifyToken)
+
+app.use('/v1', openRouter) // for open api(where token not required) means we need to prefix /v1 before path
+app.use('/api/v1', apiRouter) // for closed(where token required) api means we need to prefix /v1 before path
 
 module.exports = app;

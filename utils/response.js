@@ -6,13 +6,24 @@ const {
 function response() {
   const methods = {
     success: (res, status, data = null, message = 'success') => {
+     if (data) {
       return res.status(status).json({
-        status,
-        message,
-        data
-      });
+        statusCode: status,
+        body: {
+          message,
+          data
+        }
+      })
+     } else {
+      return res.status(status).json({
+        statusCode: status,
+        body: {
+          message
+        }
+      })
+     }
     },
-    
+
     errors: (res, status, err = {}) => {
       error(err);
       const errors = {

@@ -1,5 +1,4 @@
 module.exports = Object.freeze({
-  model: require('./user.model'),
   ctrl: require('./user.controller'),
-  routes: require('./user.route'),
+  routes: require('./user.route')
 })

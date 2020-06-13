@@ -1,12 +1,11 @@
 function userRoutes() {
-  const ctrl = require('./user.controller')
-  const validationCtrl = require('./user.validator')  
+  const ctrl = require('./user.controller'),
+    validationCtrl = require('./user.validator')
   return (open) => {
 
     //  Using Joi as middlwware before sending req to controller
-    open.route('/signUp').post(validationCtrl.signUpValidation,ctrl.createUser) 
-
-    open.route('/login').post(validationCtrl.signInValidation,ctrl.signIn)
+    open.route('/register').post(validationCtrl.signUpValidation, ctrl.registration)
+    open.route('/login').post(validationCtrl.signInValidation, ctrl.signIn)
   }
 }
 

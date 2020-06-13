@@ -1,6 +1,11 @@
 require('dotenv');
 const jwt = require('jsonwebtoken');
-const User = require('../components/user/user.model');
+const User = require('../components/user/user.controller');
+let _ = require('lodash')
+
+// console.log("User.userInformation", User.getUserInformation());
+
+
 const {
   errors
 } = require('./response');
@@ -11,19 +16,20 @@ function authenticate() {
       try {
 
         //
-        let token = req.headers['x-access-token']
+        let token = req.body.access_token
 
         if (!token)
           return errors(res, 401)
         let decoded = await jwt.verify(token, process.env.secret_key)
-        
-        let userData = await User.findOne({
-          _id: decoded._id,
-          $or: [{
-            email: decoded.email,
-          }]
-        }).select('-password').lean();
-  
+        console.log("decoded", decoded);
+
+        let userInformationData = User.getUserInformation()
+        let userData = await  _.filter(userInformationData, (obj) => {
+          if (obj.email === decoded.email) {
+            return obj.email
+          }
+        })
+
         if (userData) {
           req.user = userData;
           next();
@@ -31,11 +37,13 @@ function authenticate() {
           return errors(res, 401);
         }
       } catch (error) {
+        console.log(error);
+
         return errors(res, 400, 'Invalid token')
 
       }
-      
-     
+
+
     }
   };
   return Object.freeze(methods);

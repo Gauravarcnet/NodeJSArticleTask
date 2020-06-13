@@ -1,6 +1,7 @@
-const jwt = require('jsonwebtoken')
-const User = require("./user.model")
-
+const jwt = require('jsonwebtoken'),
+  bcrypt = require('bcrypt')
+let _ = require('lodash')
+let userInformation = []
 
 /* 
     Success and errors are the response method that we have defined 
@@ -14,79 +15,89 @@ const {
 function userCtrl() {
   const methods = {
 
-    // admin signup 
-    createUser: async (req, res) => {
+    //generate bcrypt password
+    hashPassword: async (password) => {
+      return bcrypt.hashSync(password, bcrypt.genSaltSync(8), null);
+    },
+    // Compare password
+    validPassword: async (password, userPassword) => {
+      return bcrypt.compareSync(password, userPassword);
+    },
+    userInformation: async (data) => {
       try {
-        let data = req.value
 
-        let {
-          generateHash
-        } = new User() // destructing generateHash Method from userModel
+      } catch (error) {
 
-        let searchQuery = {}
-        if (data.email) {
-          searchQuery = {}
-          searchQuery.email = data.email
-        }
+      }
+    },
+    // user signup 
+    registration: async (req, res) => {
+      try {
+        let data = req.value,
+          id = 0,
+          user = await _.filter(userInformation, (obj) => {
+            if (obj.email === data.email) {
+              return obj.email
+            }
+          })
 
-        //Check user exist with particular email 
-        let user = await User.findOne({
-          searchQuery
-        }).lean()
 
         // If user already exist Response with 
-        if (user) return errors(res, 400, 'User Already Exist')
+        if (user.length > 0) return errors(res, 403, 'User Already Exist')
 
-
-        let newUser = new User({
+        // creating user object
+        let newUser = {
+          id: id,
+          userName: data.userName || '',
+          password: data.password ? await methods.hashPassword(data.password) : '',
           email: data.email,
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          password: data.password ? generateHash(data.password) : ''
-        })
+          address: data.address || ''
 
-        await newUser.save()
+        }
+        /**
+         * i am storing user data in memory  but we can also
+         * store it in database 
+         */
+        userInformation.push(newUser)
 
-        return success(res, 200, 'user created succesfully')
+        return success(res, 201, '', 'new user created')
 
       } catch (e) {
         console.log(e)
         throw new Error(e)
       }
     },
-
-    // Login admin 
+    // Login user 
     signIn: async (req, res) => {
       try {
 
-        let value = req.value
+        let value = req.value,
+          user = await _.filter(userInformation, (obj) => {
+            if (obj.email === value.email) {
+              return obj.email
+            }
+          })
 
-        let user = await User.findOne({
-          email: value.email
-        })
 
-        // If user does not  exist Response with 
-        if (!user) {
+        if (!user.length > 0) {
           return errors(res, 400, 'user not Found', 'no user found')
 
         } else {
+          //Verifying user password
 
-          //validPassword used for verify password  by encrypting
-          if (user.validPassword(value.password)) {
+          if (await methods.validPassword(value.password, user[0].password)) {
 
-            user.loggedIn = new Date()
-
-            user = await user.save()
+            user[0].loggedIn = new Date()
 
             const {
-              _id,
+              id,
               email,
               loggedIn
-            } = user.toObject()
+            } = user[0]
 
             //Creating payload for jwt
             const tokenData = {
-              _id,
+              id,
               email,
               loggedIn
             }
@@ -110,6 +121,14 @@ function userCtrl() {
       } catch (e) {
         console.log(e)
         return errors(res, 500, e)
+      }
+    },
+    getUserInformation: () => {
+      try {
+        return userInformation
+      } catch (error) {
+        console.log(error);
+
       }
     }
   }
